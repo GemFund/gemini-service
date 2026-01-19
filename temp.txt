@@ -1,1 +1,0 @@
-git add -A && git commit -m "feat: implement gemfund forensic api" -m "- Add Tier 1 rapid assessment with EXIF metadata analysis" -m "- Add Tier 2 async deep investigation with polling" -m "- Integrate OpenAPI docs with Scalar UI" -m "- Add GitHub Actions CI/CD" -m "- Add client-facing README"
