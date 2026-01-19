@@ -129,7 +129,13 @@ app.doc('/doc', {
     description:
       'AI-powered charity fraud detection service. Uses Gemini AI to analyze fundraising campaigns for authenticity.',
   },
-  servers: [{ url: 'http://localhost:8787', description: 'Local development' }],
+  servers: [
+    {
+      url: 'https://gemfund-gemini-service.echa-apriliyanto-dev.workers.dev',
+      description: 'Production',
+    },
+    { url: 'http://localhost:8787', description: 'Local development' },
+  ],
 });
 
 app.openAPIRegistry.registerComponent('securitySchemes', 'bearerAuth', {

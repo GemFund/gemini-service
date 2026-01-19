@@ -5,7 +5,7 @@ AI-powered charity fraud detection service using Gemini AI.
 ## Base URL
 
 ```
-https://gemfund-gemini-service.<Don't know yet>.workers.dev
+https://gemfund-gemini-service.echa-apriliyanto-dev.workers.dev
 ```
 
 ## Authentication
