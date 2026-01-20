@@ -2,5 +2,11 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "gemfund-gemini-service",
   "main": "src/index.ts",
-  "compatibility_date": "2026-01-18"
+  "compatibility_date": "2026-01-18",
+  "observability": {
+    "logs": {
+      "enabled": true,
+      "invocation_logs": true
+    }
+  }
 }
