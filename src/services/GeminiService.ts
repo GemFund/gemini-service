@@ -16,6 +16,12 @@ import {
   getTier2AgentPrompt,
 } from '../lib/prompts';
 import { Tier1ResponseSchema, Tier2ResponseSchema } from '../lib/types';
+import { CONFIG } from '../lib/config';
+import {
+  VideoProcessingError,
+  AIProcessingError,
+  InvestigationError,
+} from '../lib/errors';
 
 interface UploadedFile {
   name: string;
@@ -27,17 +33,27 @@ interface FileState {
   state: string;
 }
 
+/**
+ * Result from starting an investigation
+ */
 export interface StartInvestigationResult {
   interactionId: string;
   status: InvestigationStatus;
 }
 
+/**
+ * Result from checking investigation status
+ */
 export interface InvestigationStatusResult {
   status: InvestigationStatus;
   rawOutput?: string;
   formattedReport?: Tier2Response;
 }
 
+/**
+ * Service for interacting with Gemini AI
+ * Handles both Tier 1 rapid assessments and Tier 2 deep investigations
+ */
 export class GeminiService {
   constructor(
     private client: GoogleGenAI,
@@ -45,6 +61,13 @@ export class GeminiService {
     private metadataService: MetadataService,
   ) {}
 
+  /**
+   * Performs Tier 1 rapid fraud assessment on a campaign
+   * @param text - Campaign claim text to analyze
+   * @param mediaItems - Array of media references from Supabase Storage
+   * @returns Structured fraud assessment with score, verdict, and evidence analysis
+   * @throws AIProcessingError if Gemini fails to respond
+   */
   async assessTier1(
     text: string,
     mediaItems: MediaItem[],
@@ -109,7 +132,7 @@ export class GeminiService {
     ];
 
     const response = await this.client.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: CONFIG.GEMINI_MODEL,
       contents,
       config: {
         systemInstruction: TIER1_SYSTEM_PROMPT,
@@ -121,13 +144,22 @@ export class GeminiService {
 
     const responseText = response.text;
     if (!responseText) {
-      throw new Error('No response from Gemini');
+      throw new AIProcessingError(
+        'Tier 1 assessment',
+        'No response from Gemini',
+      );
     }
 
     const parsed = JSON.parse(responseText);
     return Tier1ResponseSchema.parse(parsed);
   }
 
+  /**
+   * Starts a Tier 2 deep investigation asynchronously
+   * @param charityName - Name of the charity to investigate
+   * @param claimContext - Context about the fundraising claim
+   * @returns Interaction ID for polling status
+   */
   async startInvestigation(
     charityName: string,
     claimContext: string,
@@ -135,7 +167,7 @@ export class GeminiService {
     const input = getTier2AgentPrompt(charityName, claimContext);
 
     const interaction = await this.client.interactions.create({
-      agent: 'deep-research-pro-preview-05-2025',
+      agent: CONFIG.DEEP_RESEARCH_AGENT,
       input,
       background: true,
     });
@@ -146,6 +178,12 @@ export class GeminiService {
     };
   }
 
+  /**
+   * Checks the status of an ongoing investigation
+   * @param interactionId - The interaction ID from startInvestigation
+   * @returns Current status and raw output if completed
+   * @throws InvestigationError if investigation failed
+   */
   async getInvestigationStatus(
     interactionId: string,
   ): Promise<InvestigationStatusResult> {
@@ -153,24 +191,22 @@ export class GeminiService {
 
     if (interaction.status === 'completed') {
       const rawOutput = this.extractRawOutput(interaction.outputs);
-
-      return {
-        status: 'completed',
-        rawOutput,
-      };
+      return { status: 'completed', rawOutput };
     }
 
     if (interaction.status === 'failed' || interaction.status === 'cancelled') {
-      return {
-        status: 'failed',
-      };
+      return { status: 'failed' };
     }
 
-    return {
-      status: 'processing',
-    };
+    return { status: 'processing' };
   }
 
+  /**
+   * Formats raw investigation output into structured report
+   * @param rawOutput - Raw text from deep research agent
+   * @returns Structured Tier2Response
+   * @throws AIProcessingError if formatting fails
+   */
   async formatInvestigationReport(rawOutput: string): Promise<Tier2Response> {
     const formatPrompt = `
 You are a report formatter. Take the following raw research output and format it into a structured JSON report.
@@ -183,7 +219,7 @@ If any information is missing, use reasonable defaults or mark as "Not found".
 `;
 
     const response = await this.client.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: CONFIG.GEMINI_MODEL,
       contents: formatPrompt,
       config: {
         systemInstruction: TIER2_SYSTEM_PROMPT,
@@ -194,13 +230,19 @@ If any information is missing, use reasonable defaults or mark as "Not found".
 
     const responseText = response.text;
     if (!responseText) {
-      throw new Error('No response from Gemini');
+      throw new AIProcessingError(
+        'Report formatting',
+        'No response from Gemini',
+      );
     }
 
     const parsed = JSON.parse(responseText);
     return Tier2ResponseSchema.parse(parsed);
   }
 
+  /**
+   * Extracts text content from interaction outputs
+   */
   private extractRawOutput(outputs: unknown[] | undefined): string {
     if (!outputs || outputs.length === 0) {
       return '';
@@ -224,11 +266,12 @@ If any information is missing, use reasonable defaults or mark as "Not found".
     return textParts.join('\n\n');
   }
 
+  /**
+   * Waits for video processing to complete
+   * @throws VideoProcessingError on timeout or failure
+   */
   private async waitForVideoProcessing(fileName: string): Promise<void> {
-    const maxAttempts = 30;
-    const pollInterval = 2000;
-
-    for (let i = 0; i < maxAttempts; i++) {
+    for (let i = 0; i < CONFIG.VIDEO_MAX_POLL_ATTEMPTS; i++) {
       const file = await this.client.files.get({ name: fileName });
       const fileState = file as unknown as FileState;
 
@@ -237,13 +280,13 @@ If any information is missing, use reasonable defaults or mark as "Not found".
       }
 
       if (fileState.state === 'FAILED') {
-        throw new Error(`Video processing failed for ${fileName}`);
+        throw new VideoProcessingError(fileName, 'failed');
       }
 
-      await this.sleep(pollInterval);
+      await this.sleep(CONFIG.VIDEO_POLL_INTERVAL_MS);
     }
 
-    throw new Error(`Video processing timed out for ${fileName}`);
+    throw new VideoProcessingError(fileName, 'timeout');
   }
 
   private sleep(ms: number): Promise<void> {

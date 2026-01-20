@@ -1,23 +1,49 @@
 import exifr from 'exifr';
 
+/**
+ * Extracted EXIF metadata from an image
+ */
 export interface ImageMetadata {
+  /** Original capture timestamp */
   timestamp: string | null;
+  /** GPS latitude coordinate */
   gpsLatitude: number | null;
+  /** GPS longitude coordinate */
   gpsLongitude: number | null;
+  /** Camera model name */
   cameraModel: string | null;
+  /** Camera manufacturer */
   cameraMake: string | null;
+  /** Editing software used */
   software: string | null;
+  /** Original capture date */
   originalDate: string | null;
+  /** Last modification date */
   modifyDate: string | null;
+  /** Image orientation (1-8) */
   orientation: number | null;
+  /** Image width in pixels */
   imageWidth: number | null;
+  /** Image height in pixels */
   imageHeight: number | null;
+  /** Whether GPS data is present */
   hasGps: boolean;
+  /** Whether image was edited after capture */
   wasEdited: boolean;
+  /** Whether metadata appears to be stripped */
   metadataStripped: boolean;
 }
 
+/**
+ * Service for extracting and formatting image metadata
+ * Used for EXIF forensics in fraud detection
+ */
 export class MetadataService {
+  /**
+   * Extracts EXIF metadata from an image buffer
+   * @param buffer - Raw image bytes as ArrayBuffer
+   * @returns Extracted metadata with flags for GPS, editing, and stripped data
+   */
   async extractImageMetadata(buffer: ArrayBuffer): Promise<ImageMetadata> {
     try {
       const exif = await exifr.parse(buffer, [
@@ -68,6 +94,13 @@ export class MetadataService {
     }
   }
 
+  /**
+   * Formats metadata for inclusion in AI prompts
+   * @param metadata - Extracted image metadata
+   * @param index - Media item index (0-based)
+   * @param mediaType - Type of media ('image' or 'video')
+   * @returns Formatted string for prompt inclusion
+   */
   formatMetadataForPrompt(
     metadata: ImageMetadata,
     index: number,
@@ -117,6 +150,10 @@ export class MetadataService {
     return lines.join('\n');
   }
 
+  /**
+   * Creates placeholder metadata for videos (EXIF not supported)
+   * @returns Empty metadata with metadataStripped flag
+   */
   createVideoMetadataPlaceholder(): ImageMetadata {
     return this.createEmptyMetadata(true);
   }

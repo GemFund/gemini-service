@@ -9,6 +9,8 @@ import {
   investigateRoute,
   investigateStatusRoute,
 } from './lib/routes';
+import { CONFIG } from './lib/config';
+import { getErrorMessage } from './lib/response';
 
 const app = new OpenAPIHono<AppType>();
 
@@ -19,13 +21,18 @@ app.get('/', (c) => c.text('GemFund Forensic Engine Online'));
 
 app.use('/api/*', verifyToken);
 
+/**
+ * Tier 1 - Rapid Fraud Assessment
+ */
 app.openapi(assessRoute, async (c) => {
   const { text, media } = c.req.valid('json');
 
   try {
     const result = await c.var.services.gemini.assessTier1(text, media);
     const recommendation: 'RECOMMENDED' | 'OPTIONAL' =
-      result.score < 50 ? 'RECOMMENDED' : 'OPTIONAL';
+      result.score < CONFIG.DEEP_INVESTIGATION_THRESHOLD
+        ? 'RECOMMENDED'
+        : 'OPTIONAL';
 
     return c.json(
       {
@@ -37,11 +44,13 @@ app.openapi(assessRoute, async (c) => {
       200,
     );
   } catch (e) {
-    const error = e instanceof Error ? e.message : 'Unknown error occurred';
-    return c.json({ success: false as const, error }, 500);
+    return c.json({ success: false as const, error: getErrorMessage(e) }, 500);
   }
 });
 
+/**
+ * Tier 2 - Start Deep Investigation
+ */
 app.openapi(investigateRoute, async (c) => {
   const { charity_name, claim_context } = c.req.valid('json');
 
@@ -66,11 +75,13 @@ app.openapi(investigateRoute, async (c) => {
       202,
     );
   } catch (e) {
-    const error = e instanceof Error ? e.message : 'Unknown error occurred';
-    return c.json({ success: false as const, error }, 500);
+    return c.json({ success: false as const, error: getErrorMessage(e) }, 500);
   }
 });
 
+/**
+ * Tier 2 - Poll Investigation Status
+ */
 app.openapi(investigateStatusRoute, async (c) => {
   const { interaction_id } = c.req.valid('json');
 
@@ -116,8 +127,7 @@ app.openapi(investigateStatusRoute, async (c) => {
       202,
     );
   } catch (e) {
-    const error = e instanceof Error ? e.message : 'Unknown error occurred';
-    return c.json({ success: false as const, error }, 500);
+    return c.json({ success: false as const, error: getErrorMessage(e) }, 500);
   }
 });
 
@@ -126,8 +136,7 @@ app.doc('/doc', {
   info: {
     title: 'GemFund Forensic Engine API',
     version: '1.0.0',
-    description:
-      'AI-powered charity fraud detection service. Uses Gemini AI to analyze fundraising campaigns for authenticity.',
+    description: 'AI-powered charity fraud detection service using Gemini AI.',
   },
   servers: [
     {

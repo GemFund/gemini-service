@@ -9,7 +9,7 @@ import {
   ErrorResponseSchema,
   UnauthorizedResponseSchema,
   ValidationErrorResponseSchema,
-} from './types';
+} from './schemas';
 
 export const assessRoute = createRoute({
   method: 'post',
@@ -52,8 +52,7 @@ Performs rapid forensic analysis of a fundraising campaign using Gemini AI.
           schema: AssessResponseSchema,
         },
       },
-      description:
-        'Assessment completed successfully. Contains credibility score (0-100), verdict, and detailed analysis.',
+      description: 'Assessment completed successfully',
     },
     400: {
       content: {
@@ -61,8 +60,7 @@ Performs rapid forensic analysis of a fundraising campaign using Gemini AI.
           schema: ValidationErrorResponseSchema,
         },
       },
-      description:
-        'Validation error - invalid request body or missing required fields',
+      description: 'Validation error - invalid request body',
     },
     401: {
       content: {
@@ -78,8 +76,7 @@ Performs rapid forensic analysis of a fundraising campaign using Gemini AI.
           schema: ErrorResponseSchema,
         },
       },
-      description:
-        'Internal server error - AI processing failed or Supabase download error',
+      description: 'Internal server error',
     },
   },
 });
@@ -90,19 +87,19 @@ export const investigateRoute = createRoute({
   tags: ['Tier 2 - Deep Investigation'],
   summary: 'Start a deep investigation on a charity or campaign',
   description: `
-Initiates an asynchronous deep research investigation using Gemini AI agents with Google Search grounding.
+Initiates an asynchronous deep research investigation using Gemini AI agents.
 
 **Investigation includes:**
-- Official charity registration verification (IRS 501(c)(3), etc.)
-- Scam/fraud report searches across multiple databases
-- Financial transparency analysis (Form 990, annual reports)
+- Official charity registration verification
+- Scam/fraud report searches
+- Financial transparency analysis
 - News and social media sentiment analysis
 - Cost verification against market rates
 
-**Important:** This endpoint returns immediately with an \`interaction_id\`. 
+**Important:** Returns immediately with an \`interaction_id\`. 
 Use \`/api/v1/investigate/status\` to poll for results.
 
-**Processing Time:** 30 seconds to 2 minutes depending on research depth
+**Processing Time:** 30 seconds to 2 minutes
   `,
   security: [{ bearerAuth: [] }],
   request: {
@@ -113,7 +110,7 @@ Use \`/api/v1/investigate/status\` to poll for results.
         },
       },
       required: true,
-      description: 'Charity name and claim context for targeted investigation',
+      description: 'Charity name and claim context',
     },
   },
   responses: {
@@ -123,8 +120,7 @@ Use \`/api/v1/investigate/status\` to poll for results.
           schema: InvestigateInitResponseSchema,
         },
       },
-      description:
-        'Investigation started successfully. Poll `/api/v1/investigate/status` with the returned `interaction_id` to get results.',
+      description: 'Investigation started - poll status endpoint for results',
     },
     400: {
       content: {
@@ -132,7 +128,7 @@ Use \`/api/v1/investigate/status\` to poll for results.
           schema: ValidationErrorResponseSchema,
         },
       },
-      description: 'Validation error - charity_name or claim_context invalid',
+      description: 'Validation error',
     },
     401: {
       content: {
@@ -140,7 +136,7 @@ Use \`/api/v1/investigate/status\` to poll for results.
           schema: UnauthorizedResponseSchema,
         },
       },
-      description: 'Unauthorized - missing or invalid JWT token',
+      description: 'Unauthorized',
     },
     500: {
       content: {
@@ -148,7 +144,7 @@ Use \`/api/v1/investigate/status\` to poll for results.
           schema: ErrorResponseSchema,
         },
       },
-      description: 'Internal server error - failed to start investigation',
+      description: 'Internal server error',
     },
   },
 });
@@ -159,17 +155,14 @@ export const investigateStatusRoute = createRoute({
   tags: ['Tier 2 - Deep Investigation'],
   summary: 'Check the status of a deep investigation',
   description: `
-Polls the status of an ongoing investigation started via \`/api/v1/investigate\`.
+Polls the status of an ongoing investigation.
 
 **Status Values:**
-- \`processing\` - Investigation still in progress (HTTP 202)
-- \`completed\` - Results ready in \`data\` field (HTTP 200)
+- \`processing\` - Investigation in progress (HTTP 202)
+- \`completed\` - Results ready (HTTP 200)
 - \`failed\` - Investigation failed (HTTP 200)
 
-**Polling Strategy:**
-- Poll every 5 seconds
-- Timeout after 2 minutes
-- On \`completed\`, the \`data\` field contains the full structured report
+**Polling Strategy:** Poll every 5 seconds, timeout after 2 minutes
   `,
   security: [{ bearerAuth: [] }],
   request: {
@@ -180,7 +173,7 @@ Polls the status of an ongoing investigation started via \`/api/v1/investigate\`
         },
       },
       required: true,
-      description: 'The interaction_id received from /api/v1/investigate',
+      description: 'The interaction_id from /api/v1/investigate',
     },
   },
   responses: {
@@ -190,8 +183,7 @@ Polls the status of an ongoing investigation started via \`/api/v1/investigate\`
           schema: InvestigateStatusResponseSchema,
         },
       },
-      description:
-        'Investigation completed or failed. Check `status` field. If `completed`, full report is in `data` field.',
+      description: 'Investigation completed or failed',
     },
     202: {
       content: {
@@ -199,7 +191,7 @@ Polls the status of an ongoing investigation started via \`/api/v1/investigate\`
           schema: InvestigateStatusResponseSchema,
         },
       },
-      description: 'Investigation still in progress. Continue polling.',
+      description: 'Investigation in progress',
     },
     400: {
       content: {
@@ -207,7 +199,7 @@ Polls the status of an ongoing investigation started via \`/api/v1/investigate\`
           schema: ValidationErrorResponseSchema,
         },
       },
-      description: 'Validation error - invalid interaction_id',
+      description: 'Validation error',
     },
     401: {
       content: {
@@ -215,7 +207,7 @@ Polls the status of an ongoing investigation started via \`/api/v1/investigate\`
           schema: UnauthorizedResponseSchema,
         },
       },
-      description: 'Unauthorized - missing or invalid JWT token',
+      description: 'Unauthorized',
     },
     500: {
       content: {
@@ -223,7 +215,7 @@ Polls the status of an ongoing investigation started via \`/api/v1/investigate\`
           schema: ErrorResponseSchema,
         },
       },
-      description: 'Internal server error - failed to check status',
+      description: 'Internal server error',
     },
   },
 });
