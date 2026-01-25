@@ -162,7 +162,7 @@ Polls the status of an ongoing investigation.
 - \`completed\` - Results ready (HTTP 200)
 - \`failed\` - Investigation failed (HTTP 200)
 
-**Polling Strategy:** Poll every 5 seconds, timeout after 2 minutes
+**Polling Strategy:** Poll every 5 seconds, timeout after 10 minutes
   `,
   security: [{ bearerAuth: [] }],
   request: {

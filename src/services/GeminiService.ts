@@ -47,6 +47,7 @@ export class GeminiService {
 
   /**
    * Performs Tier 1 rapid fraud assessment on a campaign
+   * Uses two-step approach: 1) Analysis with Google Search, 2) Format to JSON
    * @param text - Campaign claim text to analyze
    * @param mediaItems - Array of media references from Supabase Storage
    * @returns Structured fraud assessment with score, verdict, and evidence analysis
@@ -75,22 +76,56 @@ export class GeminiService {
       { text: string } | { fileData: { fileUri: string; mimeType: string } }
     > = [{ text: userPrompt }, ...mediaUrls];
 
-    const response = await this.client.models.generateContent({
+    const analysisResponse = await this.client.models.generateContent({
       model: CONFIG.GEMINI_MODEL,
       contents,
       config: {
         systemInstruction: TIER1_SYSTEM_PROMPT,
-        responseMimeType: 'application/json',
-        responseJsonSchema: TIER1_RESPONSE_SCHEMA,
         tools: [{ googleSearch: {} }],
       },
     });
 
-    const responseText = response.text;
-    if (!responseText) {
+    const rawAnalysis = analysisResponse.text;
+    if (!rawAnalysis) {
       throw new AIProcessingError(
         'Tier 1 assessment',
-        'No response from Gemini',
+        'No response from Gemini analysis',
+      );
+    }
+
+    // Step 2: Format the analysis into structured JSON
+    const formatPrompt = `You are a JSON formatter. Based on the fraud assessment analysis below, extract and structure the results.
+
+FRAUD ASSESSMENT ANALYSIS:
+${rawAnalysis}
+
+Extract the following fields:
+- score: A number from 0-100 indicating credibility (higher = more credible)
+- verdict: One of "CREDIBLE", "SUSPICIOUS", or "FRAUDULENT"
+- summary: A brief explanation of the findings
+- flags: An array of string indicators found (e.g., "hospital_verified", "cost_reasonable", "urgency_trap")
+- evidence_match: Object with booleans for:
+  - location_verified: Whether location claims are verified
+  - visuals_match_text: Whether visuals align with the claim
+  - search_corroboration: Whether external search supports the claim
+  - metadata_consistent: Whether visual quality/artifacts appear consistent
+
+Be accurate and base your extraction only on the analysis provided.`;
+
+    const formatResponse = await this.client.models.generateContent({
+      model: CONFIG.GEMINI_MODEL,
+      contents: formatPrompt,
+      config: {
+        responseMimeType: 'application/json',
+        responseSchema: TIER1_RESPONSE_SCHEMA,
+      },
+    });
+
+    const responseText = formatResponse.text;
+    if (!responseText) {
+      throw new AIProcessingError(
+        'Tier 1 formatting',
+        'No response from Gemini formatter',
       );
     }
 
