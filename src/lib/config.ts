@@ -6,7 +6,7 @@ export const CONFIG = {
   GEMINI_MODEL: 'gemini-2.5-flash',
 
   /** Deep research agent identifier */
-  DEEP_RESEARCH_AGENT: 'deep-research-pro-preview-05-2025',
+  DEEP_RESEARCH_AGENT: 'deep-research-pro-preview-12-2025',
 
   /** Maximum wait time for video processing (ms) */
   VIDEO_PROCESSING_TIMEOUT_MS: 60000,
