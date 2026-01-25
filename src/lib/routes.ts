@@ -21,16 +21,16 @@ Performs rapid forensic analysis of a fundraising campaign using Gemini AI.
 
 **Analysis includes:**
 - Visual consistency checks (deepfakes, stock photos, medical equipment)
-- EXIF metadata forensics (GPS, timestamps, camera info, editing software)
 - Narrative logic verification (hospital names, costs, currency)
 - Sentiment manipulation detection (urgency traps, emotional blackmail)
 - Google Search grounding for fact-checking
 
-**Media Support:**
-- Images: JPEG, PNG, WebP (EXIF metadata extracted)
-- Videos: MP4, WebM (processed async, may take longer)
+**Media Handling:**
+- Media paths are resolved to public Supabase Storage URLs
+- URLs are passed directly to Gemini AI for visual analysis
+- Supports: JPEG, PNG, WebP, GIF, MP4, WebM, MOV
 
-**Response Time:** 5-30 seconds depending on media count
+**Response Time:** 5-15 seconds depending on media count
   `,
   security: [{ bearerAuth: [] }],
   request: {
@@ -42,7 +42,7 @@ Performs rapid forensic analysis of a fundraising campaign using Gemini AI.
       },
       required: true,
       description:
-        'Campaign text and optional media files from Supabase Storage',
+        'Campaign text and optional media paths from Supabase Storage bucket',
     },
   },
   responses: {
@@ -99,7 +99,7 @@ Initiates an asynchronous deep research investigation using Gemini AI agents.
 **Important:** Returns immediately with an \`interaction_id\`. 
 Use \`/api/v1/investigate/status\` to poll for results.
 
-**Processing Time:** 30 seconds to 2 minutes
+**Processing Time:** 30 seconds to 10 minutes
   `,
   security: [{ bearerAuth: [] }],
   request: {

@@ -25,7 +25,7 @@ export const ErrorResponseSchema = z
     }),
     error: z.string().openapi({
       description: 'Human-readable error message',
-      example: 'Download failed for campaigns/123/photo.jpg: Object not found',
+      example: 'Failed to create signed URL for photo.jpg: Object not found',
     }),
   })
   .openapi({

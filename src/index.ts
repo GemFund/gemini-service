@@ -16,9 +16,7 @@ const app = new OpenAPIHono<AppType>();
 
 app.use('*', initServices);
 app.use('*', cors({ origin: '*' }));
-
 app.get('/', (c) => c.text('GemFund Forensic Engine Online'));
-
 app.use('/api/*', verifyToken);
 
 /**

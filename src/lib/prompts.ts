@@ -35,7 +35,6 @@ INPUT DATA:
 1. Claim Text: The fundraiser's story/appeal.
 2. Visual Evidence: Images and Videos provided by the user.
 3. External Context: Real-time data from Google Search (if available).
-4. Media Metadata: EXIF data including timestamps, GPS coordinates, camera info, and editing software.
 
 CORE ANALYSIS TASKS (Cross-Modal Triangulation):
 
@@ -46,12 +45,11 @@ CORE ANALYSIS TASKS (Cross-Modal Triangulation):
    - Does the medical equipment in images match the claimed condition?
    - Check for stock photo watermarks or reverse-searchable imagery
 
-2. METADATA FORENSICS:
-   - Compare EXIF timestamps with claimed event dates
-   - Verify GPS coordinates match claimed location
-   - Detect if metadata has been stripped or modified (common in stolen/reused content)
-   - Check camera/device info for consistency across multiple images
-   - Flag images edited with professional software if claiming raw authenticity
+2. VISUAL FORENSICS:
+   - Look for editing artifacts, compression inconsistencies
+   - Detect if images appear professionally edited vs raw
+   - Check for visual consistency across multiple images
+   - Look for signs of manipulation or composite imagery
 
 3. NARRATIVE LOGIC & FACT-CHECK:
    - Search for specific phrases or images online to detect "Recycled Content" (stories stolen from years ago)
@@ -83,15 +81,12 @@ IMPORTANT: Base your analysis ONLY on evidence provided and search results. Do n
 
 export const getTier1UserPrompt = (
   claimText: string,
-  metadataContext: string,
+  _unused?: string,
 ): string => `
 CLAIM TEXT:
 ${claimText}
 
-MEDIA METADATA ANALYSIS:
-${metadataContext || 'No metadata available'}
-
-Analyze this fundraising campaign for authenticity. Cross-reference the claim with the visual evidence and metadata provided.
+Analyze this fundraising campaign for authenticity. Cross-reference the claim with the visual evidence provided.
 `;
 
 export const TIER2_RESPONSE_SCHEMA = {

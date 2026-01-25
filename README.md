@@ -1,38 +1,44 @@
 # GemFund Forensic Engine API
 
-AI-powered charity fraud detection service using Gemini AI.
+AI-powered charity fraud detection service using Gemini AI. Deployed on Cloudflare Workers.
 
 ## Base URL
 
-```
-https://gemfund-gemini-service.echa-apriliyanto-dev.workers.dev
-```
+| Environment | URL                                                               |
+| ----------- | ----------------------------------------------------------------- |
+| Production  | `https://gemfund-gemini-service.echa-apriliyanto-dev.workers.dev` |
+| Local       | `http://localhost:8787`                                           |
 
 ## Authentication
 
-All API endpoints require a valid Supabase JWT token in the Authorization header.
+All `/api/*` endpoints require a valid Supabase JWT token:
 
-```
+```http
 Authorization: Bearer <your-jwt-token>
 ```
 
-## API Documentation
+## Interactive API Docs
 
-Interactive API docs available at `/docs`
+📚 **Scalar Docs:** `/docs`  
+📄 **OpenAPI JSON:** `/doc`
+
+---
 
 ## Endpoints
 
 ### 1. Assess Campaign (Tier 1)
 
-Rapid fraud detection for fundraising campaigns.
+Rapid fraud detection using Gemini AI with Google Search grounding.
 
-**POST** `/api/v1/assess`
+```http
+POST /api/v1/assess
+```
 
-#### Request
+#### Request Body
 
 ```json
 {
-  "text": "Help save my child who needs urgent heart surgery. We need $50,000.",
+  "text": "Help save my child who needs urgent heart surgery at Johns Hopkins. We need $50,000 by Friday!",
   "media": [
     { "path": "campaigns/123/photo.jpg", "type": "image" },
     { "path": "campaigns/123/video.mp4", "type": "video" }
@@ -40,14 +46,16 @@ Rapid fraud detection for fundraising campaigns.
 }
 ```
 
-| Field          | Type   | Required | Description                                |
-| -------------- | ------ | -------- | ------------------------------------------ |
-| `text`         | string | Yes      | Campaign description (min 10 chars)        |
-| `media`        | array  | No       | Array of media items from Supabase Storage |
-| `media[].path` | string | Yes      | Path to file in Supabase Storage           |
-| `media[].type` | string | Yes      | Either `image` or `video`                  |
+| Field          | Type   | Required | Description                        |
+| -------------- | ------ | -------- | ---------------------------------- |
+| `text`         | string | Yes      | Campaign claim text (min 10 chars) |
+| `media`        | array  | No       | Media files from Supabase Storage  |
+| `media[].path` | string | Yes      | Path relative to bucket root       |
+| `media[].type` | string | Yes      | `image` or `video`                 |
 
-#### Response
+> **Media Handling:** Paths are converted to signed URLs and passed directly to Gemini AI.
+
+#### Success Response (200)
 
 ```json
 {
@@ -56,7 +64,7 @@ Rapid fraud detection for fundraising campaigns.
   "data": {
     "score": 72,
     "verdict": "CREDIBLE",
-    "summary": "Claim appears legitimate with minor inconsistencies",
+    "summary": "Campaign appears legitimate. Hospital verified. Costs align with regional averages.",
     "flags": ["hospital_verified", "cost_reasonable"],
     "evidence_match": {
       "location_verified": true,
@@ -69,39 +77,37 @@ Rapid fraud detection for fundraising campaigns.
 }
 ```
 
-| Field                | Description                                      |
-| -------------------- | ------------------------------------------------ |
-| `score`              | 0-100 credibility score (higher = more credible) |
-| `verdict`            | `CREDIBLE`, `SUSPICIOUS`, or `FRAUDULENT`        |
-| `deep_investigation` | `RECOMMENDED` if score < 50, else `OPTIONAL`     |
-
 ---
 
 ### 2. Start Investigation (Tier 2)
 
-Start a deep background investigation on a charity.
+Initiates async deep research using Gemini AI agents.
 
-**POST** `/api/v1/investigate`
+```http
+POST /api/v1/investigate
+```
 
-#### Request
+#### Request Body
 
 ```json
 {
   "charity_name": "Hearts for Children Foundation",
-  "claim_context": "Fundraising for pediatric heart surgeries"
+  "claim_context": "Fundraising for pediatric heart surgeries in developing countries"
 }
 ```
 
-#### Response
+#### Success Response (202)
 
 ```json
 {
   "success": true,
-  "interaction_id": "interaction_abc123",
+  "interaction_id": "interaction_abc123xyz",
   "status": "processing",
   "message": "Investigation started. Poll the status endpoint to check progress."
 }
 ```
+
+> **Processing Time:** 30 seconds to 10 minutes
 
 ---
 
@@ -109,32 +115,34 @@ Start a deep background investigation on a charity.
 
 Poll for investigation results.
 
-**POST** `/api/v1/investigate/status`
+```http
+POST /api/v1/investigate/status
+```
 
-#### Request
+#### Request Body
 
 ```json
 {
-  "interaction_id": "interaction_abc123"
+  "interaction_id": "interaction_abc123xyz"
 }
 ```
 
-#### Response (Processing)
+#### Response - Processing (202)
 
 ```json
 {
   "success": true,
-  "interaction_id": "interaction_abc123",
+  "interaction_id": "interaction_abc123xyz",
   "status": "processing"
 }
 ```
 
-#### Response (Completed)
+#### Response - Completed (200)
 
 ```json
 {
   "success": true,
-  "interaction_id": "interaction_abc123",
+  "interaction_id": "interaction_abc123xyz",
   "status": "completed",
   "data": {
     "charity_name": "Hearts for Children Foundation",
@@ -158,7 +166,7 @@ Poll for investigation results.
       "market_rate_comparison": "Costs align with regional averages"
     },
     "overall_risk_level": "LOW",
-    "recommendation": "Organization appears legitimate",
+    "recommendation": "Organization appears legitimate. Safe to donate.",
     "sources": [
       {
         "title": "Charity Navigator",
@@ -166,19 +174,16 @@ Poll for investigation results.
         "relevance": "Official charity rating"
       }
     ]
-  }
+  },
+  "raw_output": "..."
 }
 ```
 
-| Status       | Description                   |
-| ------------ | ----------------------------- |
-| `processing` | Investigation in progress     |
-| `completed`  | Results ready in `data` field |
-| `failed`     | Investigation failed          |
-
 ---
 
-## Error Response
+## Error Responses
+
+All errors return:
 
 ```json
 {
@@ -187,21 +192,74 @@ Poll for investigation results.
 }
 ```
 
-## Score Guide
+| Status | Description            |
+| ------ | ---------------------- |
+| 400    | Validation error       |
+| 401    | Missing or invalid JWT |
+| 500    | Internal server error  |
 
-| Score  | Verdict    | Action                         |
+---
+
+## Reference Tables
+
+### Score Guide (Tier 1)
+
+| Score  | Verdict    | Recommendation                 |
 | ------ | ---------- | ------------------------------ |
 | 80-100 | CREDIBLE   | Safe to donate                 |
 | 60-79  | CREDIBLE   | Minor concerns, review flags   |
-| 40-59  | SUSPICIOUS | Recommend Tier 2 investigation |
+| 40-59  | SUSPICIOUS | Deep investigation recommended |
 | 20-39  | FRAUDULENT | High risk, avoid               |
 | 0-19   | FRAUDULENT | Clear fraud indicators         |
 
-## Risk Levels (Tier 2)
+### Risk Levels (Tier 2)
 
-| Level    | Description                              |
-| -------- | ---------------------------------------- |
-| LOW      | Registered, transparent, good reputation |
-| MEDIUM   | Some gaps, no negative indicators        |
-| HIGH     | Multiple warning signs found             |
-| CRITICAL | Confirmed fraud reports or legal issues  |
+| Level    | Description                                    |
+| -------- | ---------------------------------------------- |
+| LOW      | Registered, transparent, good reputation       |
+| MEDIUM   | Some verification gaps, no negative indicators |
+| HIGH     | Multiple warning signs found                   |
+| CRITICAL | Confirmed fraud reports or legal issues        |
+
+### Supported Media
+
+| Type  | Extensions                               |
+| ----- | ---------------------------------------- |
+| Image | `.jpg`, `.jpeg`, `.png`, `.webp`, `.gif` |
+| Video | `.mp4`, `.webm`, `.mov`                  |
+
+---
+
+## Development
+
+```bash
+# Install dependencies
+bun install
+
+# Run locally
+bun run dev
+
+# Deploy to Cloudflare
+bun run deploy
+
+# Update types
+bun run cf-typegen
+```
+
+### Environment Variables
+
+| Variable               | Description                       |
+| ---------------------- | --------------------------------- |
+| `SUPABASE_URL`         | Supabase project URL              |
+| `SUPABASE_KEY`         | Supabase anon or service_role key |
+| `SUPABASE_JWT_SECRET`  | JWT secret for token verification |
+| `SUPABASE_BUCKET_NAME` | Storage bucket name               |
+| `GEMINI_API_KEY`       | Google Gemini API key             |
+
+Set secrets in Cloudflare:
+
+```bash
+bun wrangler secret put SUPABASE_KEY
+bun wrangler secret put GEMINI_API_KEY
+# etc.
+```

@@ -1,21 +1,13 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { DownloadError } from '../lib/errors';
 
-/**
- * Result of downloading a file from Supabase Storage
- */
-export interface FileDownloadResult {
-  /** The file as a Blob */
-  blob: Blob;
-  /** MIME type of the file */
+export interface FileUrlResult {
+  url: string;
   mimeType: string;
-  /** Raw bytes as ArrayBuffer for metadata extraction */
-  buffer: ArrayBuffer;
 }
 
 /**
  * Service for interacting with Supabase Storage
- * Handles file downloads for media analysis
+ * Provides URLs for media files
  */
 export class SupabaseService {
   constructor(
@@ -24,26 +16,39 @@ export class SupabaseService {
   ) {}
 
   /**
-   * Downloads a file from Supabase Storage
-   * @param path - Path to the file (without bucket name), e.g. "campaigns/123/photo.jpg"
-   * @returns File blob, MIME type, and raw buffer
-   * @throws DownloadError if download fails
+   * Gets a signed URL for a file in Supabase Storage
+   * Works for both public and private buckets
+   * @param path - Path to the file (without bucket name)
+   * @returns Signed URL (valid for 1 hour) and MIME type
    */
-  async downloadFile(path: string): Promise<FileDownloadResult> {
+  async getFileUrl(path: string): Promise<FileUrlResult> {
+    const mimeType = this.getMimeType(path);
+
     const { data, error } = await this.client.storage
       .from(this.bucket)
-      .download(path);
+      .createSignedUrl(path, 3600); // 1 hour expiry
 
-    if (error || !data) {
-      throw new DownloadError(path, error?.message);
+    if (error || !data?.signedUrl) {
+      throw new Error(
+        `Failed to create signed URL for ${path}: ${error?.message}`,
+      );
     }
 
-    const buffer = await data.arrayBuffer();
+    return { url: data.signedUrl, mimeType };
+  }
 
-    return {
-      blob: data,
-      mimeType: data.type,
-      buffer,
+  private getMimeType(path: string): string {
+    const ext = path.split('.').pop()?.toLowerCase();
+    const mimeTypes: Record<string, string> = {
+      jpg: 'image/jpeg',
+      jpeg: 'image/jpeg',
+      png: 'image/png',
+      gif: 'image/gif',
+      webp: 'image/webp',
+      mp4: 'video/mp4',
+      webm: 'video/webm',
+      mov: 'video/quicktime',
     };
+    return mimeTypes[ext || ''] || 'application/octet-stream';
   }
 }

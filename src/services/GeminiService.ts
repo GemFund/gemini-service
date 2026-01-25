@@ -1,6 +1,5 @@
 import type { GoogleGenAI } from '@google/genai';
 import type { SupabaseService } from './SupabaseService';
-import type { MetadataService, ImageMetadata } from './MetadataService';
 import type {
   MediaItem,
   Tier1Response,
@@ -17,21 +16,7 @@ import {
 } from '../lib/prompts';
 import { Tier1ResponseSchema, Tier2ResponseSchema } from '../lib/types';
 import { CONFIG } from '../lib/config';
-import {
-  VideoProcessingError,
-  AIProcessingError,
-  InvestigationError,
-} from '../lib/errors';
-
-interface UploadedFile {
-  name: string;
-  uri: string;
-  mimeType: string;
-}
-
-interface FileState {
-  state: string;
-}
+import { AIProcessingError } from '../lib/errors';
 
 /**
  * Result from starting an investigation
@@ -58,7 +43,6 @@ export class GeminiService {
   constructor(
     private client: GoogleGenAI,
     private supabaseService: SupabaseService,
-    private metadataService: MetadataService,
   ) {}
 
   /**
@@ -72,64 +56,24 @@ export class GeminiService {
     text: string,
     mediaItems: MediaItem[],
   ): Promise<Tier1Response> {
-    const uploadedFiles: UploadedFile[] = [];
-    const metadataResults: {
-      metadata: ImageMetadata;
-      type: 'image' | 'video';
-      index: number;
-    }[] = [];
+    const mediaUrls: Array<{
+      fileData: { fileUri: string; mimeType: string };
+    }> = [];
 
-    for (let i = 0; i < mediaItems.length; i++) {
-      const item = mediaItems[i];
-      const { blob, mimeType, buffer } =
-        await this.supabaseService.downloadFile(item.path);
-
-      if (item.type === 'image') {
-        const metadata =
-          await this.metadataService.extractImageMetadata(buffer);
-        metadataResults.push({ metadata, type: item.type, index: i });
-      } else {
-        metadataResults.push({
-          metadata: this.metadataService.createVideoMetadataPlaceholder(),
-          type: item.type,
-          index: i,
-        });
-      }
-
-      const uploadResult = await this.client.files.upload({
-        file: blob,
-        config: { mimeType },
+    for (const item of mediaItems) {
+      const { url, mimeType } = await this.supabaseService.getFileUrl(
+        item.path,
+      );
+      mediaUrls.push({
+        fileData: { fileUri: url, mimeType },
       });
-
-      if (item.type === 'video' && uploadResult.name) {
-        await this.waitForVideoProcessing(uploadResult.name);
-      }
-
-      if (uploadResult.name && uploadResult.uri && uploadResult.mimeType) {
-        uploadedFiles.push({
-          name: uploadResult.name,
-          uri: uploadResult.uri,
-          mimeType: uploadResult.mimeType,
-        });
-      }
     }
 
-    const metadataContext = metadataResults
-      .map(({ metadata, type, index }) =>
-        this.metadataService.formatMetadataForPrompt(metadata, index, type),
-      )
-      .join('\n\n');
-
-    const userPrompt = getTier1UserPrompt(text, metadataContext);
+    const userPrompt = getTier1UserPrompt(text, '');
 
     const contents: Array<
       { text: string } | { fileData: { fileUri: string; mimeType: string } }
-    > = [
-      { text: userPrompt },
-      ...uploadedFiles.map((f) => ({
-        fileData: { fileUri: f.uri, mimeType: f.mimeType },
-      })),
-    ];
+    > = [{ text: userPrompt }, ...mediaUrls];
 
     const response = await this.client.models.generateContent({
       model: CONFIG.GEMINI_MODEL,
@@ -182,7 +126,6 @@ export class GeminiService {
    * Checks the status of an ongoing investigation
    * @param interactionId - The interaction ID from startInvestigation
    * @returns Current status and raw output if completed
-   * @throws InvestigationError if investigation failed
    */
   async getInvestigationStatus(
     interactionId: string,
@@ -264,32 +207,5 @@ If any information is missing, use reasonable defaults or mark as "Not found".
     }
 
     return textParts.join('\n\n');
-  }
-
-  /**
-   * Waits for video processing to complete
-   * @throws VideoProcessingError on timeout or failure
-   */
-  private async waitForVideoProcessing(fileName: string): Promise<void> {
-    for (let i = 0; i < CONFIG.VIDEO_MAX_POLL_ATTEMPTS; i++) {
-      const file = await this.client.files.get({ name: fileName });
-      const fileState = file as unknown as FileState;
-
-      if (fileState.state === 'ACTIVE') {
-        return;
-      }
-
-      if (fileState.state === 'FAILED') {
-        throw new VideoProcessingError(fileName, 'failed');
-      }
-
-      await this.sleep(CONFIG.VIDEO_POLL_INTERVAL_MS);
-    }
-
-    throw new VideoProcessingError(fileName, 'timeout');
-  }
-
-  private sleep(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }

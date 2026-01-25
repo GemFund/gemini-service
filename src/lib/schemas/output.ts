@@ -17,7 +17,7 @@ export const EvidenceMatchSchema = z
     }),
     metadata_consistent: z.boolean().openapi({
       description:
-        'Whether EXIF metadata (timestamps, camera info) is consistent and not stripped',
+        'Whether visual metadata (quality, compression, editing artifacts) appears consistent',
       example: true,
     }),
   })
