@@ -1,4 +1,3 @@
-
 // import type { JWTPayload } from 'hono/utils/jwt/types';
 // export interface SupabaseJWTPayload extends JWTPayload {
 //   iss: string; // Issuer
@@ -16,10 +15,11 @@
 
 import { factory } from '../lib/factory';
 import { jwt } from 'hono/jwt';
+import { getEnv } from '../lib/env';
 
 export const verifyToken = factory.createMiddleware(async (c, next) => {
   const jwtMiddleware = jwt({
-    secret: c.env.SUPABASE_JWT_SECRET,
+    secret: getEnv().SUPABASE_JWT_SECRET,
     alg: 'HS256',
   });
   return jwtMiddleware(c, next);

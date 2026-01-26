@@ -138,10 +138,10 @@ app.doc('/doc', {
   },
   servers: [
     {
-      url: 'https://gemfund-gemini-service.echa-apriliyanto-dev.workers.dev',
+      url: 'https://gemfund.apir.live',
       description: 'Production',
     },
-    { url: 'http://localhost:8787', description: 'Local development' },
+    { url: 'http://localhost:3000', description: 'Local development' },
   ],
 });
 
