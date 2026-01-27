@@ -12,6 +12,9 @@ RUN bun install --frozen-lockfile --production
 FROM base AS runner
 WORKDIR /app
 
+# Install perl for exiftool-vendored
+RUN apk add --no-cache perl
+
 # Copy dependencies
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
@@ -23,3 +26,4 @@ ENV PORT=3000
 EXPOSE 3000
 
 CMD ["bun", "run", "src/index.ts"]
+

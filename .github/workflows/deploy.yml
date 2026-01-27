@@ -56,11 +56,14 @@ jobs:
 
             # Create .env.prod
             cat > .env.prod << 'EOF'
+            GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
             SUPABASE_URL=${{ secrets.SUPABASE_URL }}
             SUPABASE_KEY=${{ secrets.SUPABASE_KEY }}
             SUPABASE_JWT_SECRET=${{ secrets.SUPABASE_JWT_SECRET }}
             SUPABASE_BUCKET_NAME=${{ secrets.SUPABASE_BUCKET_NAME }}
-            GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
+            ETHERSCAN_API_KEY=${{ secrets.ETHERSCAN_API_KEY }}
+            RPC_URL=${{ secrets.RPC_URL }}
+            SERPAPI_API_KEY=${{ secrets.SERPAPI_API_KEY }}
             EOF
 
             # Create SSL directory and certificates

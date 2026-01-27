@@ -10,23 +10,37 @@ import {
 export const assessRoute = createRoute({
   method: 'post',
   path: '/api/v1/assess',
-  tags: ['Fraud Assessment'],
-  summary: 'Assess a fundraising campaign for fraud indicators',
+  tags: ['Assessment'],
+  summary: 'Analyze campaign for fraud indicators',
   description: `
-Performs rapid forensic analysis of a fundraising campaign using Gemini AI.
+Comprehensive fraud analysis combining:
 
-**Analysis includes:**
-- Visual consistency checks (deepfakes, stock photos, medical equipment)
-- Narrative logic verification (hospital names, costs, currency)
-- Sentiment manipulation detection (urgency traps, emotional blackmail)
-- Google Search grounding for fact-checking
+**Hard Metrics (Objective, 70% weight):**
+- Blockchain forensics via Etherscan (wallet age, nonce, wash trading)
+- Reverse image search via SerpAPI (stock photos, stolen imagery)
+- EXIF metadata extraction (timestamps, GPS, editing software)
+- Identity OSINT via Google Search (social presence, scam reports)
 
-**Media Handling:**
-- Media paths are resolved to public Supabase Storage URLs
-- URLs are passed directly to Gemini AI for visual analysis
-- Supports: JPEG, PNG, WebP, GIF, MP4, WebM, MOV
+**Identity OSINT Investigation:**
+- Social media presence analysis (Twitter, LinkedIn, GitHub, Instagram)
+- Scam/fraud report searches (ripoffreport, scamadviser)
+- Disposable email detection
+- Cross-platform identity consistency
+- Account age and digital footprint depth
 
-**Response Time:** 5-15 seconds depending on media count
+**Soft Metrics (AI-Analyzed, 30% weight):**
+- Visual consistency with campaign claims
+- Narrative logic and fact-checking via Google Search
+- Urgency/manipulation detection
+
+**Critical Fraud Indicators:**
+- Wash trading score >20% → FRAUD
+- Burner wallet (age <24h + nonce <5) → HIGH RISK
+- Stock photo detected → FRAUD
+- Scam reports found → HIGH RISK
+- Disposable email → SUSPICIOUS
+
+**Response Time:** 15-45 seconds (includes OSINT investigation)
   `,
   security: [{ bearerAuth: [] }],
   request: {
@@ -37,8 +51,6 @@ Performs rapid forensic analysis of a fundraising campaign using Gemini AI.
         },
       },
       required: true,
-      description:
-        'Campaign text and optional media paths from Supabase Storage bucket',
     },
   },
   responses: {
@@ -56,7 +68,7 @@ Performs rapid forensic analysis of a fundraising campaign using Gemini AI.
           schema: ValidationErrorResponseSchema,
         },
       },
-      description: 'Validation error - invalid request body',
+      description: 'Invalid request body',
     },
     401: {
       content: {
@@ -64,7 +76,7 @@ Performs rapid forensic analysis of a fundraising campaign using Gemini AI.
           schema: UnauthorizedResponseSchema,
         },
       },
-      description: 'Unauthorized - missing or invalid JWT token',
+      description: 'Missing or invalid JWT token',
     },
     500: {
       content: {
@@ -72,7 +84,7 @@ Performs rapid forensic analysis of a fundraising campaign using Gemini AI.
           schema: ErrorResponseSchema,
         },
       },
-      description: 'Internal server error',
+      description: 'Server error during analysis',
     },
   },
 });
