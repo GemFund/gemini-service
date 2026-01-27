@@ -6,31 +6,12 @@ export {
   type MediaItem,
 } from './common';
 
-export {
-  AssessSchema,
-  InvestigateSchema,
-  InvestigateStatusSchema,
-  type AssessInput,
-  type InvestigateInput,
-  type InvestigateStatusInput,
-} from './input';
+export { AssessSchema, type AssessInput } from './input';
 
 export {
   EvidenceMatchSchema,
-  Tier1ResponseSchema,
-  Tier2ResponseSchema,
   AssessResponseSchema,
-  InvestigateInitResponseSchema,
-  InvestigateStatusResponseSchema,
-  ResearchSourceSchema,
-  RegistrationStatusSchema,
-  FraudIndicatorsSchema,
-  FinancialTransparencySchema,
-  CostAnalysisSchema,
+  AssessmentResultSchema,
   type EvidenceMatch,
-  type Tier1Response,
-  type Tier2Response,
-  type InvestigationStatus,
-  type InvestigateInitResponse,
-  type InvestigateStatusResponse,
+  type AssessmentResult,
 } from './output';

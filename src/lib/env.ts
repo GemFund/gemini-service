@@ -2,7 +2,6 @@
  * Environment configuration abstraction layer.
  * Works with both Cloudflare Workers (c.env) and Node/Bun (process.env).
  */
-
 export interface Env {
   GEMINI_API_KEY: string;
   SUPABASE_URL: string;

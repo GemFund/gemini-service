@@ -23,38 +23,7 @@ export const AssessSchema = z
   })
   .openapi({
     title: 'AssessInput',
-    description: 'Input payload for Tier 1 rapid fraud assessment',
-  });
-
-export const InvestigateSchema = z
-  .object({
-    charity_name: z.string().min(2).openapi({
-      description: 'Name of the charity or organization to investigate',
-      example: 'Hearts for Children Foundation',
-    }),
-    claim_context: z.string().min(10).openapi({
-      description: 'Context about the fundraising claim for targeted research',
-      example:
-        'Fundraising campaign claims to provide pediatric heart surgeries in developing countries for $5,000 per child',
-    }),
-  })
-  .openapi({
-    title: 'InvestigateInput',
-    description: 'Input payload for Tier 2 deep investigation',
-  });
-
-export const InvestigateStatusSchema = z
-  .object({
-    interaction_id: z.string().min(1).openapi({
-      description: 'The interaction ID returned from the /investigate endpoint',
-      example: 'interaction_abc123xyz',
-    }),
-  })
-  .openapi({
-    title: 'InvestigateStatusInput',
-    description: 'Input payload for polling investigation status',
+    description: 'Input payload for fraud assessment',
   });
 
 export type AssessInput = z.infer<typeof AssessSchema>;
-export type InvestigateInput = z.infer<typeof InvestigateSchema>;
-export type InvestigateStatusInput = z.infer<typeof InvestigateStatusSchema>;

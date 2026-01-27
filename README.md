@@ -1,13 +1,13 @@
 # GemFund Forensic Engine API
 
-AI-powered charity fraud detection service using Gemini AI. Deployed on Cloudflare Workers.
+AI-powered charity fraud detection service using Gemini AI. Deployed on VPS with Docker and NGINX.
 
 ## Base URL
 
-| Environment | URL                                                               |
-| ----------- | ----------------------------------------------------------------- |
-| Production  | `https://gemfund-gemini-service.echa-apriliyanto-dev.workers.dev` |
-| Local       | `http://localhost:8787`                                           |
+| Environment | URL                         |
+| ----------- | --------------------------- |
+| Production  | `https://gemfund.apir.live` |
+| Local       | `http://localhost:3000`     |
 
 ## Authentication
 
@@ -24,11 +24,11 @@ Authorization: Bearer <your-jwt-token>
 
 ---
 
-## Endpoints
+## Endpoint
 
-### 1. Assess Campaign (Tier 1)
+### Assess Campaign
 
-Rapid fraud detection using Gemini AI with Google Search grounding.
+Fraud detection using Gemini AI with Google Search grounding.
 
 ```http
 POST /api/v1/assess
@@ -60,7 +60,6 @@ POST /api/v1/assess
 ```json
 {
   "success": true,
-  "tier": 1,
   "data": {
     "score": 72,
     "verdict": "CREDIBLE",
@@ -74,108 +73,6 @@ POST /api/v1/assess
     }
   },
   "deep_investigation": "OPTIONAL"
-}
-```
-
----
-
-### 2. Start Investigation (Tier 2)
-
-Initiates async deep research using Gemini AI agents.
-
-```http
-POST /api/v1/investigate
-```
-
-#### Request Body
-
-```json
-{
-  "charity_name": "Hearts for Children Foundation",
-  "claim_context": "Fundraising for pediatric heart surgeries in developing countries"
-}
-```
-
-#### Success Response (202)
-
-```json
-{
-  "success": true,
-  "interaction_id": "interaction_abc123xyz",
-  "status": "processing",
-  "message": "Investigation started. Poll the status endpoint to check progress."
-}
-```
-
-> **Processing Time:** 30 seconds to 10 minutes
-
----
-
-### 3. Check Investigation Status
-
-Poll for investigation results.
-
-```http
-POST /api/v1/investigate/status
-```
-
-#### Request Body
-
-```json
-{
-  "interaction_id": "interaction_abc123xyz"
-}
-```
-
-#### Response - Processing (202)
-
-```json
-{
-  "success": true,
-  "interaction_id": "interaction_abc123xyz",
-  "status": "processing"
-}
-```
-
-#### Response - Completed (200)
-
-```json
-{
-  "success": true,
-  "interaction_id": "interaction_abc123xyz",
-  "status": "completed",
-  "data": {
-    "charity_name": "Hearts for Children Foundation",
-    "registration_status": {
-      "is_registered": true,
-      "registry_name": "IRS 501(c)(3)",
-      "registration_number": "12-3456789"
-    },
-    "fraud_indicators": {
-      "scam_reports_found": false,
-      "negative_mentions": [],
-      "warning_signs": []
-    },
-    "financial_transparency": {
-      "has_public_reports": true,
-      "last_report_year": 2025,
-      "notes": "Annual reports available on website"
-    },
-    "cost_analysis": {
-      "claimed_amount_reasonable": true,
-      "market_rate_comparison": "Costs align with regional averages"
-    },
-    "overall_risk_level": "LOW",
-    "recommendation": "Organization appears legitimate. Safe to donate.",
-    "sources": [
-      {
-        "title": "Charity Navigator",
-        "url": "https://charitynavigator.org/...",
-        "relevance": "Official charity rating"
-      }
-    ]
-  },
-  "raw_output": "..."
 }
 ```
 
@@ -202,24 +99,15 @@ All errors return:
 
 ## Reference Tables
 
-### Score Guide (Tier 1)
+### Score Guide
 
-| Score  | Verdict    | Recommendation                 |
-| ------ | ---------- | ------------------------------ |
-| 80-100 | CREDIBLE   | Safe to donate                 |
-| 60-79  | CREDIBLE   | Minor concerns, review flags   |
-| 40-59  | SUSPICIOUS | Deep investigation recommended |
-| 20-39  | FRAUDULENT | High risk, avoid               |
-| 0-19   | FRAUDULENT | Clear fraud indicators         |
-
-### Risk Levels (Tier 2)
-
-| Level    | Description                                    |
-| -------- | ---------------------------------------------- |
-| LOW      | Registered, transparent, good reputation       |
-| MEDIUM   | Some verification gaps, no negative indicators |
-| HIGH     | Multiple warning signs found                   |
-| CRITICAL | Confirmed fraud reports or legal issues        |
+| Score  | Verdict    | Recommendation       |
+| ------ | ---------- | -------------------- |
+| 80-100 | CREDIBLE   | Safe to donate       |
+| 60-79  | CREDIBLE   | Minor concerns       |
+| 40-59  | SUSPICIOUS | Review recommended   |
+| 20-39  | FRAUDULENT | High risk, avoid     |
+| 0-19   | FRAUDULENT | Clear fraud detected |
 
 ### Supported Media
 
@@ -236,17 +124,19 @@ All errors return:
 # Install dependencies
 bun install
 
-# Run locally
+# Run locally (with wrangler)
 bun run dev
 
-# Deploy to Cloudflare
-bun run deploy
+# Run locally (standalone)
+bun run start
 
-# Update types
-bun run cf-typegen
+# Build and run with Docker
+docker compose up --build
 ```
 
 ### Environment Variables
+
+Copy `.env.example` to `.env.prod` and fill in your values:
 
 | Variable               | Description                       |
 | ---------------------- | --------------------------------- |
@@ -256,10 +146,28 @@ bun run cf-typegen
 | `SUPABASE_BUCKET_NAME` | Storage bucket name               |
 | `GEMINI_API_KEY`       | Google Gemini API key             |
 
-Set secrets in Cloudflare:
+---
 
-```bash
-bun wrangler secret put SUPABASE_KEY
-bun wrangler secret put GEMINI_API_KEY
-# etc.
-```
+## Deployment
+
+Automated via GitHub Actions on push to `main`:
+
+1. Builds Docker image with Bun
+2. Pushes to Docker Hub (`aprapr/gemfund:latest`)
+3. SSHs into VPS and runs `docker compose up -d`
+
+### Required GitHub Secrets
+
+| Secret                 | Description                |
+| ---------------------- | -------------------------- |
+| `VPS_IP`               | VPS IP address             |
+| `SSH_PRIVATE_KEY`      | SSH key for VPS access     |
+| `DOCKERHUB_USERNAME`   | Docker Hub username        |
+| `DOCKERHUB_TOKEN`      | Docker Hub access token    |
+| `SUPABASE_URL`         | Supabase project URL       |
+| `SUPABASE_KEY`         | Supabase service role key  |
+| `SUPABASE_JWT_SECRET`  | JWT verification secret    |
+| `SUPABASE_BUCKET_NAME` | Storage bucket name        |
+| `GEMINI_API_KEY`       | Google Gemini API key      |
+| `SSL_CERT`             | Cloudflare Origin SSL cert |
+| `SSL_KEY`              | Cloudflare Origin SSL key  |

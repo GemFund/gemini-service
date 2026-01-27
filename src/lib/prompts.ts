@@ -1,6 +1,6 @@
-import { Tier1ResponseSchema, Tier2ResponseSchema } from './types';
+import { AssessmentResultSchema } from './types';
 
-export const TIER1_RESPONSE_SCHEMA = {
+export const ASSESSMENT_RESPONSE_SCHEMA = {
   type: 'object',
   properties: {
     score: { type: 'number', minimum: 0, maximum: 100 },
@@ -26,7 +26,7 @@ export const TIER1_RESPONSE_SCHEMA = {
   required: ['score', 'verdict', 'summary', 'flags', 'evidence_match'],
 };
 
-export const TIER1_SYSTEM_PROMPT = `
+export const ASSESSMENT_SYSTEM_PROMPT = `
 ROLE:
 You are the GemFund Forensic Auditor, an elite AI specialized in detecting charity fraud, emotional manipulation, and medical misinformation.
 Your objective is to protect donors by validating the authenticity of fundraising campaigns.
@@ -79,148 +79,11 @@ SCORING GUIDE:
 IMPORTANT: Base your analysis ONLY on evidence provided and search results. Do not make assumptions. If you cannot verify something, note it as "unverified" rather than assuming fraud.
 `;
 
-export const getTier1UserPrompt = (
-  claimText: string,
-  _unused?: string,
-): string => `
+export const getAssessmentPrompt = (claimText: string): string => `
 CLAIM TEXT:
 ${claimText}
 
 Analyze this fundraising campaign for authenticity. Cross-reference the claim with the visual evidence provided.
 `;
 
-export const TIER2_RESPONSE_SCHEMA = {
-  type: 'object',
-  properties: {
-    charity_name: { type: 'string' },
-    registration_status: {
-      type: 'object',
-      properties: {
-        is_registered: { type: 'boolean' },
-        registry_name: { type: 'string' },
-        registration_number: { type: 'string' },
-      },
-      required: ['is_registered'],
-    },
-    fraud_indicators: {
-      type: 'object',
-      properties: {
-        scam_reports_found: { type: 'boolean' },
-        negative_mentions: { type: 'array', items: { type: 'string' } },
-        warning_signs: { type: 'array', items: { type: 'string' } },
-      },
-      required: ['scam_reports_found', 'negative_mentions', 'warning_signs'],
-    },
-    financial_transparency: {
-      type: 'object',
-      properties: {
-        has_public_reports: { type: 'boolean' },
-        last_report_year: { type: 'number' },
-        notes: { type: 'string' },
-      },
-      required: ['has_public_reports', 'notes'],
-    },
-    cost_analysis: {
-      type: 'object',
-      properties: {
-        claimed_amount_reasonable: { type: 'boolean' },
-        market_rate_comparison: { type: 'string' },
-      },
-      required: ['claimed_amount_reasonable', 'market_rate_comparison'],
-    },
-    overall_risk_level: {
-      type: 'string',
-      enum: ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'],
-    },
-    recommendation: { type: 'string' },
-    sources: {
-      type: 'array',
-      items: {
-        type: 'object',
-        properties: {
-          title: { type: 'string' },
-          url: { type: 'string' },
-          relevance: { type: 'string' },
-        },
-        required: ['title', 'url', 'relevance'],
-      },
-    },
-  },
-  required: [
-    'charity_name',
-    'registration_status',
-    'fraud_indicators',
-    'financial_transparency',
-    'cost_analysis',
-    'overall_risk_level',
-    'recommendation',
-    'sources',
-  ],
-};
-
-export const TIER2_SYSTEM_PROMPT = `
-ROLE:
-You are the GemFund Deep Investigation Agent, a specialized research AI that conducts thorough background checks on charitable organizations and fundraising campaigns.
-
-MISSION:
-Produce a comprehensive investigative dossier on the target charity or individual to assess legitimacy and risk level.
-
-INVESTIGATION PROTOCOL:
-
-1. REGISTRATION VERIFICATION:
-   - Search for official charity registration in national databases
-   - Check non-profit status with tax authorities
-   - Verify any claimed 501(c)(3) or equivalent status
-   - Look for business registration records
-
-2. REPUTATION ANALYSIS:
-   - Search for "scam", "fraud", "fake" associated with this name
-   - Check consumer complaint databases (BBB, Trustpilot, etc.)
-   - Look for news articles or investigative reports
-   - Search for court records or legal actions
-   - Check social media sentiment and complaints
-
-3. FINANCIAL TRANSPARENCY:
-   - Find financial reports or Form 990s (for US charities)
-   - Look for annual reports or audited statements
-   - Check GuideStar, Charity Navigator, or equivalent ratings
-   - Analyze expense ratios if available
-
-4. CAMPAIGN HISTORY:
-   - Search for past crowdfunding campaigns
-   - Check if previous campaigns were fulfilled
-   - Look for complaints about unfulfilled promises
-   - Verify claimed track record
-
-5. COST VERIFICATION:
-   - Cross-reference claimed costs with real-world data
-   - Compare medical procedure costs with regional averages
-   - Verify emergency/disaster relief cost claims
-   - Check for inflated or suspicious amounts
-
-6. SOCIAL PRESENCE:
-   - Verify social media account age and activity
-   - Check for consistent identity across platforms
-   - Look for sudden account creation near campaign launch
-   - Verify follower authenticity
-
-RISK LEVEL CRITERIA:
-- LOW: Registered charity, transparent finances, good reputation
-- MEDIUM: Some verification gaps, but no negative indicators
-- HIGH: Multiple warning signs, complaints found, limited transparency
-- CRITICAL: Confirmed fraud reports, legal issues, or clear deception patterns
-`;
-
-export const getTier2AgentPrompt = (
-  charityName: string,
-  claimContext: string,
-): string => `
-TARGET ENTITY: "${charityName}"
-
-CLAIM CONTEXT:
-${claimContext}
-
-Conduct a comprehensive investigation on this entity. Search for registration records, reputation information, financial transparency, and any fraud indicators. Produce a detailed risk assessment with sources.
-`;
-
-export { Tier1ResponseSchema, Tier2ResponseSchema };
+export { AssessmentResultSchema };
