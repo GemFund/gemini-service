@@ -322,10 +322,10 @@ The system performs automated identity investigation:
 
 ### Design Principles
 
-1. **Fail-Open Pattern** - Single API failures don't block assessment
-2. **Two-Step AI Analysis** - Free-form reasoning → Structured JSON
-3. **Zero Trust** - Every claim is false until verified
-4. **Parallel Forensics** - All checks run concurrently
+1. **Fail-Open Pattern** - Single API failures don't block assessment.
+2. **Two-Step AI Analysis** - Free-form reasoning → Structured JSON.
+3. **Zero Trust** - Every claim is false until verified.
+4. **Parallel Forensics** - All checks run concurrently.
 
 ### Project Structure
 
