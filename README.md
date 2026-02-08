@@ -22,10 +22,10 @@
 
 The rise of Generative AI has **industrialized fraud**. Malicious actors now leverage AI to:
 
-- 🎭 Generate **emotionally manipulative narratives** in native-level prose
-- 🖼️ Create **photorealistic deepfakes** of non-existent people and prototypes
-- 💰 Build **synthetic identities** that pass traditional KYC checks
-- 🔄 Execute **wash trading** schemes with circular wallet funding
+- 🎭 Generate **emotionally manipulative narratives** in native-level prose.
+- 🖼️ Create **photorealistic deepfakes** of non-existent people and prototypes.
+- 💰 Build **synthetic identities** that pass traditional KYC checks.
+- 🔄 Execute **wash trading** schemes with circular wallet funding.
 
 Traditional rule-based detection systems are helpless against generative fraud where **every attack is unique**.
 
